@@ -275,7 +275,7 @@ class Snoopy
 		unset($postdata);
 		
 		$postdata = $this->_prepare_post_body($formvars, $formfiles);
-			
+
 		$URI_PARTS = parse_url($URI);
 		if (!empty($URI_PARTS["user"]))
 			$this->user = $URI_PARTS["user"];
@@ -598,6 +598,16 @@ class Snoopy
 	}
 
 	
+/*======================================================================*\
+	Function:	set_submit_json
+	Purpose:	Set the form submission content type to
+				application/json
+\*======================================================================*/
+	function set_submit_json()
+	{
+		$this->_submit_type = "application/json";
+	}
+	
 	
 
 /*======================================================================*\
@@ -713,13 +723,13 @@ class Snoopy
 							chr(176),
 							chr(39),
 							chr(128),
-							"ä",
-							"ö",
-							"ü",
-							"Ä",
-							"Ö",
-							"Ü",
-							"ß",
+							"ï¿¤",
+							"ï¿¶",
+							"ï¿¼",
+							"ï¿„",
+							"ï¿–",
+							"ï¿œ",
+							"ï¿Ÿ",
 						);
 					
 		$text = preg_replace($search,$replace,$document);
@@ -1185,15 +1195,17 @@ class Snoopy
 	
 	function _prepare_post_body($formvars, $formfiles)
 	{
-		settype($formvars, "array");
 		settype($formfiles, "array");
 		$postdata = '';
 
-		if (count($formvars) == 0 && count($formfiles) == 0)
+		if (count($formvars) == 0 && count($formfiles) == 0) {
+			settype($formvars, "array");
 			return;
+		}
 		
 		switch ($this->_submit_type) {
 			case "application/x-www-form-urlencoded":
+				settype($formvars, "array");
 				reset($formvars);
 				while(list($key,$val) = each($formvars)) {
 					if (is_array($val) || is_object($val)) {
@@ -1205,9 +1217,19 @@ class Snoopy
 				}
 				break;
 
+			case "application/json":
+				if (is_string($formvars)) {
+					$postdata = $formvars;
+				} else {
+					$postdata = json_encode($formvars, JSON_UNESCAPED_UNICODE ^ JSON_UNESCAPED_SLASHES);
+				}
+				settype($formvars, "string");
+				break;
+	
 			case "multipart/form-data":
 				$this->_mime_boundary = "Snoopy".md5(uniqid(microtime()));
 				
+				settype($formvars, "array");
 				reset($formvars);
 				while(list($key,$val) = each($formvars)) {
 					if (is_array($val) || is_object($val)) {
